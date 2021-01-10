@@ -4,28 +4,45 @@
 # @FileName: noisy_image.py
 # @Software: PyCharm
 
-"""
-Parameters
-----------
-image : ndarray
-    Input image data. Will be converted to float.
-mode : str
-    One of the following strings, selecting the type of noise to add:
 
-    'gauss'     Gaussian-distributed additive noise.
-    'poisson'   Poisson-distributed noise generated from the data.
-    's&p'       Replaces random pixels with 0 or 1.
-    'speckle'   Multiplicative noise using out = image + n*image,where
-                n,is uniform noise with specified mean & variance.
-
-"""
-
-import os
 from functools import wraps
 
 
 import numpy as np
 import cv2
+from vcam import vcam
+from vcam import meshGen
+
+
+def noisy_image(image: np.ndarray, mode: str, *args, **kwargs):
+    """
+    Parameters
+    ----------
+    image : ndarray
+        Input image data. Will be converted to float.
+    mode : str
+        One of the following strings, selecting the type of noise to add:
+
+        'gauss'     Gaussian-distributed additive noise.
+        'poisson'   Poisson-distributed noise generated from the data.
+        'sp'       Replaces random pixels with 0 or 1.
+        'strip'   .
+
+    """
+    if mode == 'gauss':
+        return gauss_noise(image, kwargs.get('mean', 0), kwargs.get('var', 1))
+    elif mode == 'poisson':
+        return poisson_noise(image)
+    elif mode == 'sp':
+        return sp_noise(image, kwargs.get('amount'), kwargs.get('prob'))
+    elif mode == 'strip':
+        return strip_noise(image, kwargs.get('gap'), kwargs.get('degree'), kwargs.get('prob'))
+    elif mode == 'wrap':
+        return wrap_noise(image)
+    elif mode == 'glass':
+        return glass_noise(image)
+    else:
+        raise ValueError('')
 
 
 def std_img(func):
@@ -47,8 +64,8 @@ def gauss_noise(image: np.ndarray, mean: float = 0, var: float = 1):
     var: 概率分布的方差
     """
     noise = np.random.normal(mean, var ** 0.5, image.shape)
-    out = image + noise
-    return out
+    dst = image + noise
+    return dst
 
 
 @std_img
@@ -57,8 +74,8 @@ def poisson_noise(image: np.ndarray):
     """
     vals = len(np.unique(image))
     vals = 2 ** np.ceil(np.log2(vals))
-    noise = np.random.poisson(image * vals) / float(vals)
-    return noise
+    dst = np.random.poisson(image * vals) / float(vals)
+    return dst
 
 
 def sp_noise(image: np.ndarray, amount: float, prob: float):
@@ -67,14 +84,14 @@ def sp_noise(image: np.ndarray, amount: float, prob: float):
     amount: 噪声比例
     prob: 盐噪声比例
     """
-    out = image.copy()
+    out_img = image.copy()
     p, q = amount, prob
     flipped = np.random.choice([True, False], size=image.shape, p=[p, 1 - p])
     salted = np.random.choice([True, False], size=image.shape, p=[q, 1 - q])
     peppered = ~salted
-    out[flipped & salted] = 255
-    out[flipped & peppered] = 1
-    return out
+    out_img[flipped & salted] = 255
+    out_img[flipped & peppered] = 1
+    return out_img
 
 
 def strip_noise(image: np.ndarray, gap: float, degree: float, prob: float):
@@ -100,11 +117,43 @@ def strip_noise(image: np.ndarray, gap: float, degree: float, prob: float):
         return image
 
 
+def wrap_noise(image: np.ndarray):
+    img = image
+    h, w = img.shape[:2]
+    camera = vcam(H=h, W=w)
+    plane = meshGen(h, w)
+    plane.Z = np.sin(8 * np.pi * (plane.X / plane.W))
+    # plane.Z -= 100*np.sqrt((plane.X*1.0/plane.W)**2+(plane.Y*1.0/plane.H)**2)
+    plane.Z += 20*np.exp(-0.5*((plane.X*1.0/plane.W)/0.1)**2)/(0.1*np.sqrt(2*np.pi))
+    pts3d = plane.getPlane()
+    pts2d = camera.project(pts3d)
+    map_x, map_y = camera.getMaps(pts2d)
+    out = cv2.remap(img, map_x, map_y, interpolation=cv2.INTER_LINEAR)
+    out = cv2.flip(out, 1)
+    return out
+    pass
+
+
+def glass_noise(image: np.ndarray):
+    dst = np.zeros_like(image)
+    h, w, _ = dst.shape
+    offsets = 10
+    random_num = 0
+
+    for y in range(h - offsets):
+        for x in range(w - offsets):
+            random_num = np.random.randint(0, offsets)
+            dst[y, x] = image[y + random_num, x + random_num]
+    return dst
+
 
 if __name__ == '__main__':
     INPUT_PATH = '../data/input/img/00385801.png'
     OUTPUT_PATH = '../data/output/img/00385801.png'
     img = cv2.imread(INPUT_PATH)
-    out = strip_noise(img, gap=10, degree=0, prob=0.8)
+    # out = sp_noise(img, 0.1, 0.2)
+    # out = strip_noise(img, gap=10, degree=0, prob=0.8)
+    # out = wrap_noise(img)
+    out = gauss_noise(img)
     # print(out.shape, img.shape)
     cv2.imwrite(OUTPUT_PATH, out)
