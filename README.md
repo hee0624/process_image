@@ -23,6 +23,7 @@ generate noisy image
 ##### 执行代码
 
 `python process_image.py noisy --input_dir=../data/input/img/ --output_dir=../data/output/img/ --mode=sp --prob=0`
+`python process_image.py enhance --input_dir=../data/input/img/ --output_dir=../data/output/img/ --mode=color --value=1.5`
 ```shell script
     """
      Function to add random noise of various types to a floating-point image.
