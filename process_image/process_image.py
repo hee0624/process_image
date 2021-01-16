@@ -16,6 +16,7 @@ from vcam import meshGen
 from tqdm import tqdm
 from PIL import ImageEnhance
 from PIL import Image
+from math import *
 
 
 def noisy_image(input_dir: str, output_dir: str, mode: str, **kwargs):
@@ -49,29 +50,45 @@ def noisy_image(input_dir: str, output_dir: str, mode: str, **kwargs):
         Proportion of image pixels to replace with noise on range [0, 1].
         Used in 'salt & pepper'.Default :
     """
+    if os.path.exists(output_dir):
+        pass
+    else:
+        os.mkdir(output_dir)
     if mode == 'gauss':
         for path in tqdm(in_path(input_dir), total=10, desc='处理', mininterval=0.3, maxinterval=10.0, ncols=100, unit='个'):
             out_path = os.path.join(output_dir, os.path.basename(path))
-            image = cv2.imread(path)
-            out = gauss_noise(image, kwargs.get('mean', 0), kwargs.get('var', 1))
-            cv2.imwrite(out_path, out)
+            src = cv2.imread(path)
+            dst = gauss_noise(src, kwargs.get('mean', 0), kwargs.get('var', 1))
+            cv2.imwrite(out_path, dst)
     elif mode == 'poisson':
         for path in tqdm(in_path(input_dir), total=10, desc='处理', mininterval=0.3, maxinterval=10.0, ncols=100, unit='个'):
             out_path = os.path.join(output_dir, os.path.basename(path))
-            image = cv2.imread(path)
-            out = poisson_noise(image)
-            cv2.imwrite(out_path, out)
+            src = cv2.imread(path)
+            dst = poisson_noise(src)
+            cv2.imwrite(out_path, dst)
     elif mode == 'sp':
         for path in tqdm(in_path(input_dir), total=10, desc='处理', mininterval=0.3, maxinterval=10.0, ncols=100, unit='个'):
             out_path = os.path.join(output_dir, os.path.basename(path))
-            image = cv2.imread(path)
-            out = sp_noise(image, kwargs.get('amount', 0.05), kwargs.get('prob', 0.2))
-            cv2.imwrite(out_path, out)
+            src = cv2.imread(path)
+            dst = sp_noise(src, kwargs.get('amount', 0.05), kwargs.get('prob', 0.2))
+            cv2.imwrite(out_path, dst)
+    elif mode == 'snow':
+        for path in tqdm(in_path(input_dir), total=10, desc='处理', mininterval=0.3, maxinterval=10.0, ncols=100, unit='个'):
+            out_path = os.path.join(output_dir, os.path.basename(path))
+            src = cv2.imread(path)
+            dst = snow_noise(src, kwargs.get('amount', 0.05))
+            cv2.imwrite(out_path, dst)
     elif mode == 'strip':
         for path in tqdm(in_path(input_dir), total=10, desc='处理', mininterval=0.3, maxinterval=10.0, ncols=100, unit='个'):
             out_path = os.path.join(output_dir, os.path.basename(path))
             image = cv2.imread(path)
-            out = strip_noise(image, kwargs.get('gap', 10), kwargs.get('degree', 0), kwargs.get('prob', 0.8))
+            out = strip_noise(image, kwargs.get('gap', 10), kwargs.get('width', 5), kwargs.get('degree', 0), kwargs.get('color'), kwargs.get('value', 2))
+            cv2.imwrite(out_path, out)
+    elif mode == 'net':
+        for path in tqdm(in_path(input_dir), total=10, desc='处理', mininterval=0.3, maxinterval=10.0, ncols=100, unit='个'):
+            out_path = os.path.join(output_dir, os.path.basename(path))
+            image = cv2.imread(path)
+            out = net_noise(image, kwargs.get('gap', 10), kwargs.get('width', 5), kwargs.get('degree', 0), kwargs.get('color'), kwargs.get('value', 2))
             cv2.imwrite(out_path, out)
     elif mode == 'wrap':
         for path in tqdm(in_path(input_dir), total=10, desc='处理', mininterval=0.3, maxinterval=10.0, ncols=100, unit='个'):
@@ -140,9 +157,9 @@ def std_img(func):
     def wrapper(*args, **kwargs):
         image = func(*args, **kwargs)
         image = np.clip(image, 0, 255)
-        # image[image < 0] = 0
-        # image[image > 255] = 255
-        image = image.astype(np.uint8)
+        image[image < 0] = 0
+        image[image > 255] = 255
+        # image = image.astype(np.uint8)
         return image
     return wrapper
 
@@ -154,7 +171,6 @@ def in_path(dir):
             yield path
 
 
-@std_img
 def gauss_noise(image: np.ndarray, mean: float = 0, var: float = 1):
     """高斯噪声
     image: 图像的ndarray
@@ -166,7 +182,6 @@ def gauss_noise(image: np.ndarray, mean: float = 0, var: float = 1):
     return dst
 
 
-@std_img
 def poisson_noise(image: np.ndarray):
     """泊松噪声
     """
@@ -186,37 +201,79 @@ def sp_noise(image: np.ndarray, amount: float, prob: float):
         raise ValueError(f'amount 参数必须在0-1之间')
     if prob < 0 or prob > 1:
         raise ValueError(f'prob 参数必须在0-1之间')
-    out_img = image.copy()
+    dst = image.copy()
     p, q = amount, prob
     flipped = np.random.choice([True, False], size=image.shape, p=[p, 1 - p])
     salted = np.random.choice([True, False], size=image.shape, p=[q, 1 - q])
     peppered = ~salted
-    out_img[flipped & salted] = 255
-    out_img[flipped & peppered] = 1
-    return out_img
+    dst[flipped & salted] = 0
+    dst[flipped & peppered] = 255
+    return dst
 
 
-def strip_noise(image: np.ndarray, gap: float, degree: float, prob: float):
-    """"""
+def snow_noise(image: np.ndarray, amount: float):
+    """雪花噪声"""
+    return sp_noise(image=image, amount=amount, prob=0)
+
+
+def strip_noise(image: np.ndarray, gap: float, width: int, degree: float, color, value):
     h, w, c = image.shape
     if degree == 0:
         line = np.linspace(0, h, int(h/gap))
-        switch = np.random.choice([True, False], size=(len(line)), p=[prob, 1-prob])
-        line = line[switch]
         for p in line[:-1]:
             p = int(np.floor(p))
-            for i in range(w):
-                image[p][i] = image[p][i] + np.random.normal(0, 90)
+            up, down = p - int(width/2), p + int(width/2)
+            up = up if up > 0 else 0
+            down = down if down < h else h
+            if color == 'black':
+                image[up: down, :] = 0
+            elif color == 'white':
+                image[up: down, :] = 255
+            elif color == 'bright':
+                im = Image.fromarray(image[up: down, :])
+                enh_bri = ImageEnhance.Brightness(im)
+                brightness = value
+                dst = enh_bri.enhance(brightness)
+                image[up: down, :] = np.array(dst)
+            else:
+                image[up: down, :] = image[up: down, :] + np.random.normal(0, 100, image[up: down, :].shape)
         return image
     elif degree == 90:
         line = np.linspace(0, w, int(w/gap))
-        switch = np.random.choice([True, False], size=(len(line)), p=[prob, 1-prob])
-        line = line[switch]
         for p in line[:-1]:
             p = int(np.floor(p))
-            for i in range(h):
-                image[i][p] = image[i][p] + np.random.normal(0, 90)
+            left, right = p - int(width/2), p + int(width/2)
+            left = left if left > 0 else 0
+            right = right if right < w else w
+            if color == 'black':
+                image[:, left:right] = 0
+            elif color == 'white':
+                image[:, left:right] = 255
+            elif color == 'bright':
+                im = Image.fromarray(image[:, left:right])
+                enh_bri = ImageEnhance.Brightness(im)
+                brightness = value
+                dst = enh_bri.enhance(brightness)
+                image[:, left:right] = np.array(dst)
+            else:
+                image[:, left:right] = image[:, left:right] + np.random.normal(0, 10, image[:, left:right].shape)
         return image
+    else:
+        dst = remote(image, degree)
+        dst = strip_noise(dst, gap=gap, width=width, degree=0, color=color, value=value)
+        dst = remote(dst, -1*degree)
+        dst_h, dst_w = dst.shape[:2]
+        up = int((dst_h - h) / 2)
+        left = int((dst_w - w) / 2)
+        dst = dst[up:up + h, left: left + w]
+        dst = cv2.resize(dst, (w, h), interpolation=cv2.INTER_AREA)
+        return dst
+
+
+def net_noise(image: np.ndarray, gap: float, width: int, degree: float, color, value):
+    image = strip_noise(image, gap, width, degree, color, value)
+    image = strip_noise(image, gap, width, degree+90, color, value)
+    return image
 
 
 def wrap_noise(image: np.ndarray):
@@ -260,7 +317,7 @@ def enhance_brightness(image: np.ndarray, vaule: float):
 
 
 def enhance_color(image: np.ndarray, vaule: float):
-    """色度增强"""
+    """色度，饱和度增强"""
     image = Image.fromarray(image)
     enh_col = ImageEnhance.Color(image)
     color = vaule
@@ -286,17 +343,19 @@ def enhance_sharpness(image: np.ndarray, vaule: float):
     return np.array(dst)
 
 
+def remote(img, degree):
+    #degree左转
+    src_h, src_w = img.shape[:2]
+    dst_h = int(src_w * fabs(sin(radians(degree))) + src_h * fabs(cos(radians(degree))))
+    dst_w = int(src_h * fabs(sin(radians(degree))) + src_w * fabs(cos(radians(degree))))
+    matRotation = cv2.getRotationMatrix2D((src_w / 2, src_h / 2), degree, 1)
+    matRotation[0, 2] += (dst_w - src_w) / 2
+    matRotation[1, 2] += (dst_h - src_h) / 2
+    dst = cv2.warpAffine(img, matRotation, (dst_w, dst_h), borderValue=(255, 255, 255))
+    return dst
+
+
 def main():
-    # INPUT_PATH = '../data/input/img/00385801.png'
-    # OUTPUT_PATH = '../data/output/img/00385801.png'
-    #
-    # img = cv2.imread(INPUT_PATH)
-    # # out = sp_noise(img, 0.1, 0.2)
-    # # out = strip_noise(img, gap=10, degree=0, prob=0.8)
-    # # out = wrap_noise(img)
-    # # out = gauss_noise(img)
-    # out = enhance_color(img, 2)
-    # cv2.imwrite(OUTPUT_PATH, out)
     fire.Fire({
         'noisy': noisy_image,
         'enhance': enhance_image

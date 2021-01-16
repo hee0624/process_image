@@ -5,9 +5,15 @@ generate noisy image
 雪花噪声
 条纹噪声
 
+**成像**
 1. [done]高斯噪声
 2. [done]泊松噪声
 3. [done]椒盐噪声
+
+
+**对抗**
+1. [done]雪花噪声-随机信噪比干扰 表现为雪花干扰，图像上会出现雪花状的斑点。
+2. [done]条纹噪声 水平+垂直+ 黑色 白色 亮度 
 4. [done]滚动横条纹
 5. [done]滚动竖条纹
 6. 网状条纹
@@ -20,10 +26,35 @@ generate noisy image
 饱和对:
 对比度: 对比度指不同颜色之间的差别。对比度越大，不同颜色之间的反差越大，即所谓黑白分明，对比度过大，图像就会显得很刺眼。对比度越小，不同颜色之间的反差就越小。
 
+s'd
 ##### 执行代码
 
-`python process_image.py noisy --input_dir=../data/input/img/ --output_dir=../data/output/img/ --mode=sp --prob=0`
-`python process_image.py enhance --input_dir=../data/input/img/ --output_dir=../data/output/img/ --mode=color --value=1.5`
+高斯噪声 `python process_image.py noisy --input_dir=../data/input/img/ --output_dir=../data/output/gauss/ --mode=gauss --var=250`
+泊松噪声 `python process_image.py noisy --input_dir=../data/input/img/ --output_dir=../data/output/poisson/ --mode=poisson`
+椒盐噪声 `python process_image.py noisy --input_dir=../data/input/img/ --output_dir=../data/output/sp/ --mode=sp --amount=0.1 --prob=0.2`
+雪花噪声 `python process_image.py noisy --input_dir=../data/input/img/ --output_dir=../data/output/snow/ --mode=snow --amount=0.2`
+
+条纹噪声12种类
+
+条纹噪声 水平+白`python process_image.py noisy --input_dir=../data/input/img/ --output_dir=../data/output/h_b_strip/ --mode=strip --gap=10 --width=3 --degree=0 --color=white`
+条纹噪声 水平+黑 `python process_image.py noisy --input_dir=../data/input/img/ --output_dir=../data/output/h_w_strip/ --mode=strip --gap=10 --width=3 --degree=0 --color=black`
+条纹噪声 水平+随机 `python process_image.py noisy --input_dir=../data/input/img/ --output_dir=../data/output/h_b_strip/ --mode=strip --gap=10 --width=3 --degree=0`
+条纹噪声 垂直+黑`python process_image.py noisy --input_dir=../data/input/img/ --output_dir=../data/output/v_b_strip/ --mode=strip --gap=10 --width=3 --degree=90 --color=black`
+条纹噪声 垂直+白`python process_image.py noisy --input_dir=../data/input/img/ --output_dir=../data/output/v_w_strip/ --mode=strip --gap=10 --width=3 --degree=90 --color=white`
+条纹噪声 垂直+随机`python process_image.py noisy --input_dir=../data/input/img/ --output_dir=../data/output/v_b_strip/ --mode=strip --gap=10 --width=3 --degree=90`
+条纹噪声 斜+白`process_image.py noisy --input_dir=../data/input/img/ --output_dir=../data/output/l_w_strip/ --mode=strip --gap=10 --width=3 --degree=45 --color=white`
+条纹噪声 斜+黑`python process_image.py noisy --input_dir=../data/input/img/ --output_dir=../data/output/l_b_strip/ --mode=strip --gap=10 --width=3 --degree=45 --color=black`
+条纹噪声 斜+随机`>python process_image.py noisy --input_dir=../data/input/img/ --output_dir=../data/output/l_strip/ --mode=strip --gap=10 --width=3 --degree=45`
+
+网状噪声8
+网状噪声 正+黑
+网状噪声 正+白
+网状噪声 正+随机
+网状噪声 斜+黑 `process_image.py noisy --input_dir=../data/input/img/ --output_dir=../data/output/n_b_strip/ --mode=net --gap=10 --width=3 --degree=45  --color=black`
+网状噪声 斜+白
+网状噪声 斜+随机
+
+
 ```shell script
     """
      Function to add random noise of various types to a floating-point image.
