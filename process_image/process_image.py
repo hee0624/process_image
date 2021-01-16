@@ -260,7 +260,7 @@ def stripe_noise(image: np.ndarray, gap: float, width: int, degree: float, color
         return image
     else:
         dst = remote(image, degree)
-        dst = strip_noise(dst, gap=gap, width=width, degree=0, color=color, value=value)
+        dst = stripe_noise(dst, gap=gap, width=width, degree=0, color=color, value=value)
         dst = remote(dst, -1*degree)
         dst_h, dst_w = dst.shape[:2]
         up = int((dst_h - h) / 2)
@@ -271,8 +271,8 @@ def stripe_noise(image: np.ndarray, gap: float, width: int, degree: float, color
 
 
 def net_noise(image: np.ndarray, gap: float, width: int, degree: float, color, value):
-    image = strip_noise(image, gap, width, degree, color, value)
-    image = strip_noise(image, gap, width, degree+90, color, value)
+    image = stripe_noise(image, gap, width, degree, color, value)
+    image = stripe_noise(image, gap, width, degree+90, color, value)
     return image
 
 
