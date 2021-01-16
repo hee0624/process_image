@@ -58,7 +58,7 @@ def noisy_image(input_dir: str, output_dir: str, mode: str, **kwargs):
         for path in tqdm(in_path(input_dir), total=10, desc='处理', mininterval=0.3, maxinterval=10.0, ncols=100, unit='个'):
             out_path = os.path.join(output_dir, os.path.basename(path))
             src = cv2.imread(path)
-            dst = gauss_noise(src, kwargs.get('mean', 0), kwargs.get('var', 1))
+            dst = gauss_noise(src, kwargs.get('mean', 0), kwargs.get('var', 100))
             cv2.imwrite(out_path, dst)
     elif mode == 'poisson':
         for path in tqdm(in_path(input_dir), total=10, desc='处理', mininterval=0.3, maxinterval=10.0, ncols=100, unit='个'):
@@ -78,11 +78,11 @@ def noisy_image(input_dir: str, output_dir: str, mode: str, **kwargs):
             src = cv2.imread(path)
             dst = snow_noise(src, kwargs.get('amount', 0.05))
             cv2.imwrite(out_path, dst)
-    elif mode == 'strip':
+    elif mode == 'stripe':
         for path in tqdm(in_path(input_dir), total=10, desc='处理', mininterval=0.3, maxinterval=10.0, ncols=100, unit='个'):
             out_path = os.path.join(output_dir, os.path.basename(path))
             image = cv2.imread(path)
-            out = strip_noise(image, kwargs.get('gap', 10), kwargs.get('width', 5), kwargs.get('degree', 0), kwargs.get('color'), kwargs.get('value', 2))
+            out = stripe_noise(image, kwargs.get('gap', 10), kwargs.get('width', 5), kwargs.get('degree', 0), kwargs.get('color'), kwargs.get('value', 2))
             cv2.imwrite(out_path, out)
     elif mode == 'net':
         for path in tqdm(in_path(input_dir), total=10, desc='处理', mininterval=0.3, maxinterval=10.0, ncols=100, unit='个'):
@@ -216,7 +216,7 @@ def snow_noise(image: np.ndarray, amount: float):
     return sp_noise(image=image, amount=amount, prob=0)
 
 
-def strip_noise(image: np.ndarray, gap: float, width: int, degree: float, color, value):
+def stripe_noise(image: np.ndarray, gap: float, width: int, degree: float, color, value):
     h, w, c = image.shape
     if degree == 0:
         line = np.linspace(0, h, int(h/gap))
