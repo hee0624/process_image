@@ -432,34 +432,40 @@ def remote(img, degree):
     return dst
 
 
-def main():
+def cmd():
     fire.Fire({
         'noisy': noisy_image,
         'enhance': enhance_image
     })
 
 
-def run():
-    top_dir = '../data'
+def main(top_dir='', worker=8):
+    top_dir = top_dir
     fun = noisy_image
-    mode = 'gauss'
-    kwds = {}
-    pool = Pool()
+    payload = [
+        {'mode': 'gauss', 'output': 'rgb_gauss', 'kwds': {'var': 400}},
+        {'mode': 'poisson', 'output': 'rgb_poisson', 'kwds': {}},
+        {'mode': 'sp', 'output': 'rgb_sp', 'kwds': {'amount': 0.05, 'prob': 0.5}},
+        {'mode': 'hls', 'output': 'rgb_hls_h', 'kwds': {'h_value': 15, 'l_value': 0, 's_value': 0}},
+        {'mode': 'hls', 'output': 'rgb_hls_l', 'kwds': {'h_value': 0, 'l_value': 30, 's_value': 0}},
+        {'mode': 'hls', 'output': 'rgb_hls_s', 'kwds': {'h_value': 0, 'l_value': 0, 's_value': 30}},
+        {'mode': 'glass', 'output': 'rgb_glass', 'kwds': {}},
+        {'mode': 'snow', 'output': 'rgb_sj', 'kwds': {'amount': 0.2}},
+        {'mode': 'net', 'output': 'rgb_dp', 'kwds': {'gap': 50, 'width': 3, 'degree': 0, 'color': 'white'}},
+        {'mode': 'net', 'output': 'rgb_dc', 'kwds': {'gap': 50, 'width': 2, 'degree': 45,  'color': 'black'}},
+        {'mode': 'stripe', 'output': 'rgb_jd', 'kwds': {'gap': 50, 'width': 2, 'degree': 0, 'color': 'black'}},
+        {'mode': 'stripe', 'output': 'rgb_gp', 'kwds': {'gap': 50, 'width': 10, 'degree': 0, 'color': 'black'}},
+    ]
+    pool = Pool(worker)
     for rt, ds, fs in os.walk(top_dir):
         for d in ds:
             if os.path.basename(d) in {'rgb'}:
                 path = os.path.join(rt, d)
                 input_dir = path
-                output_dir = os.path.join(rt, mode + 'rgb')
-                pool.apply_async(fun, args=(input_dir, output_dir), kwds=kwds)
+                for item in payload:
+                    output_dir = os.path.join(rt, item.get('output'))
+                    pool.apply_async(fun, args=(input_dir, output_dir, item.get('mode')), kwds=item.get('kwds'))
     pool.close()
     pool.join()
-
-
-
 if __name__ == '__main__':
-    # main()
-    # run()
-    src = cv2.imread('../data/input/rgb/00420039.png')
-    dst = hls_noise(src, score=[0, 0, 123])
-    cv2.imwrite('123.png', dst)
+    main(top_dir=r'../data/input', worker=4)
