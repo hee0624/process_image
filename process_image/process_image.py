@@ -136,6 +136,16 @@ def noisy_image(input_dir: str, output_dir: str, mode: str, **kwargs):
             image = cv2.imread(path)
             out = glass_noise(image)
             cv2.imwrite(out_path, out)
+    elif mode == 'hls':
+        for path in tqdm(in_path(input_dir), total=10, desc='处理', mininterval=0.3, maxinterval=10.0, ncols=100, unit='个'):
+            out_path = os.path.join(output_dir, os.path.basename(path))
+            name, ext = os.path.splitext(out_path)
+            out_path = name + '.jpg'
+            if ext != '.png':
+                continue
+            image = cv2.imread(path)
+            out = hls_noise(image, h_value=kwargs.get('h_value', 0), l_value=kwargs.get('l_value', 0), s_value=kwargs.get('s_value', 0))
+            cv2.imwrite(out_path, out)
     else:
         raise ValueError('不支持该类型')
 
@@ -345,6 +355,35 @@ def glass_noise(image: np.ndarray):
     return dst
 
 
+def hls_noise(image: np.ndarray, h_value, l_value, s_value):
+    """hls空间 hls (diff_h0-180, diff_l,0-255 diff_s0-255)"""
+    hls = cv2.cvtColor(image, cv2.COLOR_BGR2HLS)
+    g_hls_h = hls[:, :, 0]
+    g_hls_l = hls[:, :, 1]
+    g_hls_s = hls[:, :, 2]
+
+    # h分量
+    hls_hf = g_hls_h.astype(np.float)
+    hls_hf += h_value
+    hls_hf[hls_hf > 180] -= 180  # 超过180
+    hls_hf[hls_hf < 0] += 180  # 小于0
+    new_hls_h = hls_hf.astype("uint8")
+    # l分量
+    hls_lf = g_hls_l.astype(np.float)
+    hls_lf += l_value
+    hls_lf[hls_lf < 0] = 0
+    hls_lf[hls_lf > 255] = 255
+    new_hls_l = hls_lf.astype("uint8")
+    hls_ls = g_hls_s.astype(np.float)
+    # s分量
+    hls_ls += s_value
+    hls_ls[hls_ls < 0] = 0
+    hls_ls[hls_ls > 255] = 255
+    new_hls_s = hls_ls.astype("uint8")
+    dist = cv2.cvtColor(cv2.merge([new_hls_h, new_hls_l, new_hls_s]), cv2.COLOR_HLS2BGR)
+    return dist
+
+
 def enhance_brightness(image: np.ndarray, vaule: float):
     """亮度增强"""
     image = Image.fromarray(image)
@@ -399,13 +438,6 @@ def main():
         'enhance': enhance_image
     })
 
-import  time
-def f(input_dir, output_dir, **kwargs):
-    print('hello', input_dir)
-    print('hello', output_dir)
-    print(kwargs)
-    time.sleep(1000)
-
 
 def run():
     top_dir = '../data'
@@ -424,6 +456,10 @@ def run():
     pool.join()
 
 
+
 if __name__ == '__main__':
     # main()
-    run()
+    # run()
+    src = cv2.imread('../data/input/rgb/00420039.png')
+    dst = hls_noise(src, score=[0, 0, 123])
+    cv2.imwrite('123.png', dst)
