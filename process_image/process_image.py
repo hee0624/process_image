@@ -278,11 +278,7 @@ def stripe_noise(image: np.ndarray, gap: float, width: int, degree: float, color
             elif color == 'white':
                 image[up: down, :] = 255
             elif color == 'bright':
-                im = Image.fromarray(image[up: down, :])
-                enh_bri = ImageEnhance.Brightness(im)
-                brightness = value
-                dst = enh_bri.enhance(brightness)
-                image[up: down, :] = np.array(dst)
+                image[up: down, :] = hls_noise(image[up: down, :], h_value=0, l_value=value, s_value=0)
             else:
                 image[up: down, :] = image[up: down, :] + np.random.normal(0, 100, image[up: down, :].shape)
         return image
@@ -298,13 +294,9 @@ def stripe_noise(image: np.ndarray, gap: float, width: int, degree: float, color
             elif color == 'white':
                 image[:, left:right] = 255
             elif color == 'bright':
-                im = Image.fromarray(image[:, left:right])
-                enh_bri = ImageEnhance.Brightness(im)
-                brightness = value
-                dst = enh_bri.enhance(brightness)
-                image[:, left:right] = np.array(dst)
+                image[:, left:right] = hls_noise(image[:, left:right], h_value=0, l_value=value, s_value=0)
             else:
-                image[:, left:right] = image[:, left:right] + np.random.normal(0, 10, image[:, left:right].shape)
+                image[:, left:right] = image[:, left:right] + np.random.normal(0, 100, image[:, left:right].shape)
         return image
     else:
         dst = remote(image, degree)
@@ -443,18 +435,18 @@ def main(top_dir='', worker=8):
     top_dir = top_dir
     fun = noisy_image
     payload = [
-        {'mode': 'gauss', 'output': 'rgb_gauss', 'kwds': {'var': 400}},
-        {'mode': 'poisson', 'output': 'rgb_poisson', 'kwds': {}},
-        {'mode': 'sp', 'output': 'rgb_sp', 'kwds': {'amount': 0.05, 'prob': 0.5}},
-        {'mode': 'hls', 'output': 'rgb_hls_h', 'kwds': {'h_value': 15, 'l_value': 0, 's_value': 0}},
-        {'mode': 'hls', 'output': 'rgb_hls_l', 'kwds': {'h_value': 0, 'l_value': 30, 's_value': 0}},
-        {'mode': 'hls', 'output': 'rgb_hls_s', 'kwds': {'h_value': 0, 'l_value': 0, 's_value': 30}},
-        {'mode': 'glass', 'output': 'rgb_glass', 'kwds': {}},
-        {'mode': 'snow', 'output': 'rgb_sj', 'kwds': {'amount': 0.2}},
-        {'mode': 'net', 'output': 'rgb_dp', 'kwds': {'gap': 50, 'width': 3, 'degree': 0, 'color': 'white'}},
-        {'mode': 'net', 'output': 'rgb_dc', 'kwds': {'gap': 50, 'width': 2, 'degree': 45,  'color': 'black'}},
-        {'mode': 'stripe', 'output': 'rgb_jd', 'kwds': {'gap': 50, 'width': 2, 'degree': 0, 'color': 'black'}},
-        {'mode': 'stripe', 'output': 'rgb_gp', 'kwds': {'gap': 50, 'width': 10, 'degree': 0, 'color': 'black'}},
+        # {'mode': 'gauss', 'output': 'rgb_gauss', 'kwds': {'var': 400}},
+        # {'mode': 'poisson', 'output': 'rgb_poisson', 'kwds': {}},
+        # {'mode': 'sp', 'output': 'rgb_sp', 'kwds': {'amount': 0.05, 'prob': 0.5}},
+        # {'mode': 'hls', 'output': 'rgb_hls_h', 'kwds': {'h_value': 15, 'l_value': 0, 's_value': 0}},
+        # {'mode': 'hls', 'output': 'rgb_hls_l', 'kwds': {'h_value': 0, 'l_value': 30, 's_value': 0}},
+        # {'mode': 'hls', 'output': 'rgb_hls_s', 'kwds': {'h_value': 0, 'l_value': 0, 's_value': 30}},
+        # {'mode': 'glass', 'output': 'rgb_glass', 'kwds': {}},
+        # {'mode': 'snow', 'output': 'rgb_sj', 'kwds': {'amount': 0.2}},
+        # {'mode': 'net', 'output': 'rgb_dp', 'kwds': {'gap': 50, 'width': 3, 'degree': 0, 'color': 'white'}},
+        # {'mode': 'net', 'output': 'rgb_dc', 'kwds': {'gap': 50, 'width': 2, 'degree': 45,  'color': 'black'}},
+        # {'mode': 'stripe', 'output': 'rgb_jd', 'kwds': {'gap': 50, 'width': 2, 'degree': 0, 'color': 'black'}},
+        {'mode': 'stripe', 'output': 'rgb_gp', 'kwds': {'gap': 50, 'width': 10, 'degree': 0, 'color': 'bright', 'value': -20}},
     ]
     pool = Pool(worker)
     for rt, ds, fs in os.walk(top_dir):
