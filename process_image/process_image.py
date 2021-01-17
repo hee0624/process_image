@@ -6,6 +6,8 @@
 
 import os
 from functools import wraps
+from multiprocessing import Process
+from multiprocessing import Pool
 
 
 import fire
@@ -57,48 +59,80 @@ def noisy_image(input_dir: str, output_dir: str, mode: str, **kwargs):
     if mode == 'gauss':
         for path in tqdm(in_path(input_dir), total=10, desc='处理', mininterval=0.3, maxinterval=10.0, ncols=100, unit='个'):
             out_path = os.path.join(output_dir, os.path.basename(path))
+            name, ext = os.path.splitext(out_path)
+            out_path = name + '.jpg'
+            if ext != '.png':
+                continue
             src = cv2.imread(path)
             dst = gauss_noise(src, kwargs.get('mean', 0), kwargs.get('var', 100))
             cv2.imwrite(out_path, dst)
     elif mode == 'poisson':
         for path in tqdm(in_path(input_dir), total=10, desc='处理', mininterval=0.3, maxinterval=10.0, ncols=100, unit='个'):
             out_path = os.path.join(output_dir, os.path.basename(path))
+            name, ext = os.path.splitext(out_path)
+            out_path = name + '.jpg'
+            if ext != '.png':
+                continue
             src = cv2.imread(path)
             dst = poisson_noise(src)
             cv2.imwrite(out_path, dst)
     elif mode == 'sp':
         for path in tqdm(in_path(input_dir), total=10, desc='处理', mininterval=0.3, maxinterval=10.0, ncols=100, unit='个'):
             out_path = os.path.join(output_dir, os.path.basename(path))
+            name, ext = os.path.splitext(out_path)
+            out_path = name + '.jpg'
+            if ext != '.png':
+                continue
             src = cv2.imread(path)
             dst = sp_noise(src, kwargs.get('amount', 0.05), kwargs.get('prob', 0.2))
             cv2.imwrite(out_path, dst)
     elif mode == 'snow':
         for path in tqdm(in_path(input_dir), total=10, desc='处理', mininterval=0.3, maxinterval=10.0, ncols=100, unit='个'):
             out_path = os.path.join(output_dir, os.path.basename(path))
+            name, ext = os.path.splitext(out_path)
+            out_path = name + '.jpg'
+            if ext != '.png':
+                continue
             src = cv2.imread(path)
             dst = snow_noise(src, kwargs.get('amount', 0.05))
             cv2.imwrite(out_path, dst)
     elif mode == 'stripe':
         for path in tqdm(in_path(input_dir), total=10, desc='处理', mininterval=0.3, maxinterval=10.0, ncols=100, unit='个'):
             out_path = os.path.join(output_dir, os.path.basename(path))
+            name, ext = os.path.splitext(out_path)
+            out_path = name + '.jpg'
+            if ext != '.png':
+                continue
             image = cv2.imread(path)
             out = stripe_noise(image, kwargs.get('gap', 10), kwargs.get('width', 5), kwargs.get('degree', 0), kwargs.get('color'), kwargs.get('value', 2))
             cv2.imwrite(out_path, out)
     elif mode == 'net':
         for path in tqdm(in_path(input_dir), total=10, desc='处理', mininterval=0.3, maxinterval=10.0, ncols=100, unit='个'):
             out_path = os.path.join(output_dir, os.path.basename(path))
+            name, ext = os.path.splitext(out_path)
+            out_path = name + '.jpg'
+            if ext != '.png':
+                continue
             image = cv2.imread(path)
             out = net_noise(image, kwargs.get('gap', 10), kwargs.get('width', 5), kwargs.get('degree', 0), kwargs.get('color'), kwargs.get('value', 2))
             cv2.imwrite(out_path, out)
     elif mode == 'wrap':
         for path in tqdm(in_path(input_dir), total=10, desc='处理', mininterval=0.3, maxinterval=10.0, ncols=100, unit='个'):
             out_path = os.path.join(output_dir, os.path.basename(path))
+            name, ext = os.path.splitext(out_path)
+            out_path = name + '.jpg'
+            if ext != '.png':
+                continue
             image = cv2.imread(path)
             out = wrap_noise(image)
             cv2.imwrite(out_path, out)
     elif mode == 'glass':
         for path in tqdm(in_path(input_dir), total=10, desc='处理', mininterval=0.3, maxinterval=10.0, ncols=100, unit='个'):
             out_path = os.path.join(output_dir, os.path.basename(path))
+            name, ext = os.path.splitext(out_path)
+            out_path = name + '.jpg'
+            if ext != '.png':
+                continue
             image = cv2.imread(path)
             out = glass_noise(image)
             cv2.imwrite(out_path, out)
@@ -127,24 +161,28 @@ def enhance_image(input_dir: str, output_dir: str, mode: str, value: str):
     if mode == 'brightness':
         for path in tqdm(in_path(input_dir), total=10, desc='处理', mininterval=0.3, maxinterval=10.0, ncols=100, unit='个'):
             out_path = os.path.join(output_dir, os.path.basename(path))
+            out_path = os.path.splitext(out_path)[0] + '.jpg'
             image = cv2.imread(path)
             out = enhance_brightness(image, value)
             cv2.imwrite(out_path, out)
     elif mode == 'color':
         for path in tqdm(in_path(input_dir), total=10, desc='处理', mininterval=0.3, maxinterval=10.0, ncols=100, unit='个'):
             out_path = os.path.join(output_dir, os.path.basename(path))
+            out_path = os.path.splitext(out_path)[0] + '.jpg'
             image = cv2.imread(path)
             out = enhance_color(image, value)
             cv2.imwrite(out_path, out)
     elif mode == 'contrast':
         for path in tqdm(in_path(input_dir), total=10, desc='处理', mininterval=0.3, maxinterval=10.0, ncols=100, unit='个'):
             out_path = os.path.join(output_dir, os.path.basename(path))
+            out_path = os.path.splitext(out_path)[0] + '.jpg'
             image = cv2.imread(path)
             out = enhance_contrast(image, value)
             cv2.imwrite(out_path, out)
     elif mode == 'sharpness':
         for path in tqdm(in_path(input_dir), total=10, desc='处理', mininterval=0.3, maxinterval=10.0, ncols=100, unit='个'):
             out_path = os.path.join(output_dir, os.path.basename(path))
+            out_path = os.path.splitext(out_path)[0] + '.jpg'
             image = cv2.imread(path)
             out = enhance_sharpness(image, value)
             cv2.imwrite(out_path, out)
@@ -361,6 +399,31 @@ def main():
         'enhance': enhance_image
     })
 
+import  time
+def f(input_dir, output_dir, **kwargs):
+    print('hello', input_dir)
+    print('hello', output_dir)
+    print(kwargs)
+    time.sleep(1000)
+
+
+def run():
+    top_dir = '../data'
+    fun = noisy_image
+    mode = 'gauss'
+    kwds = {}
+    pool = Pool()
+    for rt, ds, fs in os.walk(top_dir):
+        for d in ds:
+            if os.path.basename(d) in {'rgb'}:
+                path = os.path.join(rt, d)
+                input_dir = path
+                output_dir = os.path.join(rt, mode + 'rgb')
+                pool.apply_async(fun, args=(input_dir, output_dir), kwds=kwds)
+    pool.close()
+    pool.join()
+
 
 if __name__ == '__main__':
-    main()
+    # main()
+    run()
