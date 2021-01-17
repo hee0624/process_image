@@ -251,8 +251,8 @@ def sp_noise(image: np.ndarray, amount: float, prob: float):
         raise ValueError(f'prob 参数必须在0-1之间')
     dst = image.copy()
     p, q = amount, prob
-    flipped = np.random.choice([True, False], size=image.shape, p=[p, 1 - p])
-    salted = np.random.choice([True, False], size=image.shape, p=[q, 1 - q])
+    flipped = np.random.choice([True, False], size=image.shape[:2], p=[p, 1 - p])
+    salted = np.random.choice([True, False], size=image.shape[:2], p=[q, 1 - q])
     peppered = ~salted
     dst[flipped & salted] = 0
     dst[flipped & peppered] = 255
